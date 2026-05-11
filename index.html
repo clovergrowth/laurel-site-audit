@@ -186,6 +186,47 @@
   .alert-title { font-family: 'Inter', system-ui, sans-serif; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
   .alert-text { font-size: 12.5px; color: var(--text-muted); }
 
+  /* ── TOOLTIPS ── */
+  .stat-label { position: relative; }
+  .tip {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent-light); color: var(--accent);
+    font-size: 9px; font-weight: 700; cursor: default;
+    margin-left: 5px; vertical-align: middle;
+    position: relative; top: -1px; flex-shrink: 0;
+    border: 1px solid rgba(28,10,122,.15);
+    font-style: normal; line-height: 1;
+  }
+  .tip::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a2e; color: #fff;
+    font-size: 11.5px; font-weight: 400; line-height: 1.5;
+    padding: 8px 12px; border-radius: 8px;
+    white-space: normal; width: 220px; text-align: left;
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.15s, transform 0.15s;
+    transform: translateX(-50%) translateY(4px);
+    z-index: 999; box-shadow: 0 4px 16px rgba(0,0,0,.2);
+    text-transform: none; letter-spacing: 0;
+  }
+  .tip:hover::after {
+    opacity: 1; transform: translateX(-50%) translateY(0);
+  }
+  /* arrow */
+  .tip::before {
+    content: '';
+    position: absolute; bottom: calc(100% + 3px); left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: #1a1a2e;
+    pointer-events: none; opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 1000;
+  }
+  .tip:hover::before { opacity: 1; }
+
   /* ── MOBILE ── */
   @media (max-width: 768px) {
     .sidebar {
@@ -269,17 +310,17 @@
     </table>
   </div>
   <div class="stat-grid">
-    <div class="stat-card"><div class="stat-label">Total URLs Crawled</div><div class="stat-value blue">490</div><div class="stat-sub">All resource types</div></div>
-    <div class="stat-card ok"><div class="stat-label">Indexable Pages</div><div class="stat-value green">58</div><div class="stat-sub">HTML, 200 OK</div></div>
-    <div class="stat-card"><div class="stat-label">Non-Indexable</div><div class="stat-value">28</div><div class="stat-sub">Canonical, redirected, blocked</div></div>
-    <div class="stat-card ok"><div class="stat-label">CMS-Injected Schemas</div><div class="stat-value green">58</div><div class="stat-sub">JS-rendered, SF missed all</div></div>
-    <div class="stat-card warn"><div class="stat-label">Schema Gaps</div><div class="stat-value orange">9</div><div class="stat-sub">Need additional types</div></div>
-    <div class="stat-card warn"><div class="stat-label">Missing Titles</div><div class="stat-value orange">9</div><div class="stat-sub">Indexable pages</div></div>
-    <div class="stat-card warn"><div class="stat-label">Missing Meta Desc</div><div class="stat-value orange">4</div><div class="stat-sub">Indexable pages</div></div>
-    <div class="stat-card warn"><div class="stat-label">Images Missing Alt</div><div class="stat-value orange">282</div><div class="stat-sub">Across all pages</div></div>
-    <div class="stat-card ok"><div class="stat-label">Missing H1s</div><div class="stat-value green">0</div><div class="stat-sub">All pages have H1</div></div>
-    <div class="stat-card"><div class="stat-label">301 Redirects</div><div class="stat-value">24</div><div class="stat-sub">Mostly old taxonomy</div></div>
-    <div class="stat-card"><div class="stat-label">External 404s</div><div class="stat-value">10</div><div class="stat-sub">Dead outbound links</div></div>
+    <div class="stat-card"><div class="stat-label">Total URLs Crawled<i class="tip" data-tip="Every URL Screaming Frog discovered — HTML pages, images, JS, CSS, fonts, PDFs, and external links. Not just pages Google indexes.">i</i></div><div class="stat-value blue">490</div><div class="stat-sub">All resource types</div></div>
+    <div class="stat-card ok"><div class="stat-label">Indexable Pages<i class="tip" data-tip="HTML pages returning 200 OK that are not blocked by robots.txt, noindex, or canonical tag. Only these 58 pages can appear in Google search results.">i</i></div><div class="stat-value green">58</div><div class="stat-sub">HTML, 200 OK</div></div>
+    <div class="stat-card"><div class="stat-label">Non-Indexable<i class="tip" data-tip="Pages Google will not index: URLs with noindex directives, self-canonicals pointing elsewhere, or pages blocked by robots.txt. Does not include redirects or errors.">i</i></div><div class="stat-value">28</div><div class="stat-sub">Canonical, redirected, blocked</div></div>
+    <div class="stat-card ok"><div class="stat-label">CMS-Injected Schemas<i class="tip" data-tip="Structured data found only after JavaScript rendering (Webflow). Screaming Frog's static crawl showed 0 schemas — Chromium browser crawl revealed schemas on all 58 pages.">i</i></div><div class="stat-value green">58</div><div class="stat-sub">JS-rendered, SF missed all</div></div>
+    <div class="stat-card warn"><div class="stat-label">Schema Gaps<i class="tip" data-tip="Pages that have at least one schema type but are missing recommended additional types. For example: blog posts with only BreadcrumbList but no Article schema.">i</i></div><div class="stat-value orange">9</div><div class="stat-sub">Need additional types</div></div>
+    <div class="stat-card warn"><div class="stat-label">Missing Titles<i class="tip" data-tip="Indexable HTML pages with a blank or absent &lt;title&gt; tag. Title tags are a primary Google ranking signal and appear as the clickable headline in search results.">i</i></div><div class="stat-value orange">9</div><div class="stat-sub">Indexable pages</div></div>
+    <div class="stat-card warn"><div class="stat-label">Missing Meta Desc<i class="tip" data-tip="Indexable pages with no meta description. Google often uses this as the search snippet. Missing descriptions increase the chance Google auto-generates a poor snippet.">i</i></div><div class="stat-value orange">4</div><div class="stat-sub">Indexable pages</div></div>
+    <div class="stat-card warn"><div class="stat-label">Images Missing Alt<i class="tip" data-tip="Images across all crawled pages with no alt attribute. Alt text helps Google understand image content, contributes to image search ranking, and is required for accessibility.">i</i></div><div class="stat-value orange">282</div><div class="stat-sub">Across all pages</div></div>
+    <div class="stat-card ok"><div class="stat-label">Missing H1s<i class="tip" data-tip="Indexable pages with no H1 heading. Every page should have exactly one H1 — it signals the page's primary topic to Google.">i</i></div><div class="stat-value green">0</div><div class="stat-sub">All pages have H1</div></div>
+    <div class="stat-card"><div class="stat-label">301 Redirects<i class="tip" data-tip="Permanent redirects found during the crawl. A redirect chain longer than 2 hops wastes crawl budget and dilutes link equity. Most here point old category URLs to current pages.">i</i></div><div class="stat-value">24</div><div class="stat-sub">Mostly old taxonomy</div></div>
+    <div class="stat-card"><div class="stat-label">External 404s<i class="tip" data-tip="Outbound links from laurel.ai to other websites that returned 404 (page not found). These are dead links on the live site — fix by updating or removing them.">i</i></div><div class="stat-value">10</div><div class="stat-sub">Dead outbound links</div></div>
   </div>
 
   <div class="chart-grid">
@@ -310,14 +351,14 @@
 <div id="tab-response" class="tab-pane">
 <div class="content">
   <div class="stat-grid">
-    <div class="stat-card ok"><div class="stat-label">200 OK</div><div class="stat-value green">424</div></div>
-    <div class="stat-card warn"><div class="stat-label">301 Moved</div><div class="stat-value orange">24</div></div>
-    <div class="stat-card"><div class="stat-label">302 Found</div><div class="stat-value">5</div></div>
-    <div class="stat-card"><div class="stat-label">307 Temp Redirect</div><div class="stat-value">3</div></div>
-    <div class="stat-card highlight"><div class="stat-label">404 Not Found</div><div class="stat-value red">10</div></div>
-    <div class="stat-card highlight"><div class="stat-label">401 Unauthorized</div><div class="stat-value red">9</div></div>
-    <div class="stat-card highlight"><div class="stat-label">403 Forbidden</div><div class="stat-value red">4</div></div>
-    <div class="stat-card"><div class="stat-label">Failed/DNS</div><div class="stat-value">17</div><div class="stat-sub">DNS fail, blocked, timeout</div></div>
+    <div class="stat-card ok"><div class="stat-label">200 OK<i class="tip" data-tip="All resources returning 200 — includes HTML pages, images, scripts, stylesheets, and fonts. Only 58 of these are indexable HTML pages. The rest (366) are assets Google doesn't index as pages.">i</i></div><div class="stat-value green">424</div></div>
+    <div class="stat-card warn"><div class="stat-label">301 Moved<i class="tip" data-tip="Permanent redirects. The old URL sends visitors and Google to a new address. Each hop in a redirect chain can lose a small amount of link equity.">i</i></div><div class="stat-value orange">24</div></div>
+    <div class="stat-card"><div class="stat-label">302 Found<i class="tip" data-tip="Temporary redirects. Google treats these differently from 301s — link equity is not reliably passed. If the destination is permanent, upgrade to 301.">i</i></div><div class="stat-value">5</div></div>
+    <div class="stat-card"><div class="stat-label">307 Temp Redirect<i class="tip" data-tip="HTTP/1.1 version of 302. Preserves the original request method. Typically server-generated and indicates a temporary move — should be reviewed for any that should be permanent.">i</i></div><div class="stat-value">3</div></div>
+    <div class="stat-card highlight"><div class="stat-label">404 Not Found<i class="tip" data-tip="URLs that no longer exist. If other pages link to these, those are broken internal links — bad for UX and wastes crawl budget. Review and either restore the page or add a 301 redirect.">i</i></div><div class="stat-value red">10</div></div>
+    <div class="stat-card highlight"><div class="stat-label">401 Unauthorized<i class="tip" data-tip="Pages behind a login wall or requiring authentication. Google cannot crawl these. If they should be public, check server access rules. If intentionally gated, this is expected.">i</i></div><div class="stat-value red">9</div></div>
+    <div class="stat-card highlight"><div class="stat-label">403 Forbidden<i class="tip" data-tip="Pages the server is actively blocking. Google will not index these. If any should be public, this indicates a misconfigured access rule or CDN/firewall block.">i</i></div><div class="stat-value red">4</div></div>
+    <div class="stat-card"><div class="stat-label">Failed/DNS<i class="tip" data-tip="URLs that timed out, failed DNS resolution, or were blocked by robots.txt during the crawl. Mostly third-party URLs or subdomains not under laurel.ai's control.">i</i></div><div class="stat-value">17</div><div class="stat-sub">DNS fail, blocked, timeout</div></div>
   </div>
   <div class="table-card">
     <div class="table-header"><span class="table-title">All Response Codes</span><span class="table-count" id="rc-count"></span></div>
