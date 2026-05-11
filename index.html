@@ -131,15 +131,16 @@
 <!-- ═══════════════════ SUMMARY ═══════════════════ -->
 <div id="tab-summary" class="tab-pane active">
 <div class="content">
-  <div class="alert-box">
-    <div class="alert-title">🚨 Critical: Zero structured data across all 58 indexable pages</div>
-    <div class="alert-text">No Schema.org markup detected anywhere — homepage, product pages, blog posts, success stories. This is a major missed opportunity for rich results and knowledge graph visibility.</div>
+  <div class="alert-box warn">
+    <div class="alert-title">⚠️ All schemas are CMS-injected (JS-rendered) — Screaming Frog missed them entirely</div>
+    <div class="alert-text">Chromium rendering revealed structured data on all 58 indexable pages. Every schema is injected post-render by Webflow/CMS — invisible to static crawlers like Screaming Frog. 9 pages have only BreadcrumbList and need additional schema types.</div>
   </div>
   <div class="stat-grid">
     <div class="stat-card"><div class="stat-label">Total URLs Crawled</div><div class="stat-value blue">490</div><div class="stat-sub">All resource types</div></div>
     <div class="stat-card ok"><div class="stat-label">Indexable Pages</div><div class="stat-value green">58</div><div class="stat-sub">HTML, 200 OK</div></div>
     <div class="stat-card"><div class="stat-label">Non-Indexable</div><div class="stat-value">28</div><div class="stat-sub">Canonical, redirected, blocked</div></div>
-    <div class="stat-card highlight"><div class="stat-label">No Structured Data</div><div class="stat-value red">58</div><div class="stat-sub">100% of indexable pages</div></div>
+    <div class="stat-card ok"><div class="stat-label">CMS-Injected Schemas</div><div class="stat-value green">58</div><div class="stat-sub">JS-rendered, SF missed all</div></div>
+    <div class="stat-card warn"><div class="stat-label">Schema Gaps</div><div class="stat-value orange">9</div><div class="stat-sub">Need additional types</div></div>
     <div class="stat-card warn"><div class="stat-label">Missing Titles</div><div class="stat-value orange">9</div><div class="stat-sub">Indexable pages</div></div>
     <div class="stat-card warn"><div class="stat-label">Missing Meta Desc</div><div class="stat-value orange">4</div><div class="stat-sub">Indexable pages</div></div>
     <div class="stat-card warn"><div class="stat-label">Images Missing Alt</div><div class="stat-value orange">282</div><div class="stat-sub">Across all pages</div></div>
@@ -298,15 +299,15 @@
 <!-- ═══════════════════ STRUCTURED DATA ═══════════════════ -->
 <div id="tab-schema" class="tab-pane">
 <div class="content">
-  <div class="alert-box">
-    <div class="alert-title">🚨 Zero structured data detected on all 58 indexable pages</div>
-    <div class="alert-text">Screaming Frog found no Schema.org JSON-LD or microdata on any indexable page. This means no eligibility for rich results: no Article cards, no FAQPage dropdowns, no Organization knowledge panel, no BreadcrumbList, no SoftwareApplication rich card. This is the highest-priority SEO gap on the site.</div>
+  <div class="alert-box warn">
+    <div class="alert-title">⚠️ All schemas are CMS-injected — Screaming Frog missed all of them</div>
+    <div class="alert-text">Chromium rendering confirmed structured data exists on all 58 pages. Every JSON-LD block is injected by the CMS/Webflow after JS rendering — completely invisible to static crawlers. 9 pages have only BreadcrumbList and need additional schema types added.</div>
   </div>
   <div class="table-card">
-    <div class="table-header"><span class="table-title">Indexable pages with no structured data</span><span class="table-count">58 / 58 pages</span></div>
+    <div class="table-header"><span class="table-title">Structured data per page (Chromium crawl)</span><span class="table-count">58 / 58 pages</span></div>
     <div class="table-scroll">
       <table>
-        <thead><tr><th>URL</th><th>Schema Count</th><th>Recommended Schemas</th></tr></thead>
+        <thead><tr><th>URL</th><th>Scripts</th><th>Schema Types</th><th>Gap / Opportunity</th><th>Source</th></tr></thead>
         <tbody id="schema-body"></tbody>
       </table>
     </div>
@@ -651,9 +652,75 @@ function renderContent() {
 }
 
 function renderSchema() {
-  document.getElementById('schema-body').innerHTML = INDEXABLE.map(r =>
-    `<tr>${urlCell(r.url)}<td>${pill('0','red')}</td><td style="font-size:12px;color:var(--text-muted)">${schemaRec(r.url)}</td></tr>`
-  ).join('');
+  const SCHEMA_DATA = [
+    {url:"https://www.laurel.ai/",count:4,types:["Organization","SoftwareApplication","WebSite","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/product",count:3,types:["SoftwareApplication","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/signal",count:3,types:["SoftwareApplication","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/solutions/legal",count:3,types:["Service","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/solutions/accounting",count:3,types:["Service","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/solutions/timekeepers",count:3,types:["Service","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources",count:3,types:["CollectionPage","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/signal-work-intelligence",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/why-ai-accelerates-the-wrong-work",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/what-is-work-intelligence",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/your-ai-strategy-is-built-on-a-broken-foundation",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/the-second-job",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/revenue-operations-levers",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/mapping-time-to-outcomes",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/refactoring-the-factory-model",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/the-future-of-fixed-fee-profitability",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/transform-your-bottom-line",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/the-15-minute-myth",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/meeting-multitasking-cost",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/heres-what-an-ai-first-company-looks-like",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/how-were-building-for-the-future",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/watson-farley-williams-selects-laurel-as-its-global-ai-time-platform",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/dawn-sharifan-jacob-sills-join-laurel",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/2025-end-of-year-innovation-roundup",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/maximum-utilization-for-amlaw-big-4-firms-our-2024-in-review",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/ai-time-platform-laurel-raises-100-million-to-transform-the-professional-services-industry",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/laurel-raises-36-5m-series-b-to-return-time-to-the-world",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/going-beyond-fixed-rules-with-machine-learning-to-truly-automate-timekeeping",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/enhancing-legal-and-accounting-workflows-with-ai-insights-into-work-code-prediction",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/using-ai-to-illuminate-the-true-cost-value-of-service-delivery",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/future-proofing-the-legal-practice-embracing-generative-ai",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/laurel-achieves-soc-2-type-ii-certification-building-with-confidence-for-secure-and-efficient-digital-work-management",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/soc-2-compliant",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/business-impact",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/unveiling-the-data-dashboard-a-glimpse-into-the-future",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/implementation-that-doesnt-fatigue",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/meeting-users-where-they-are-embracing-modernization-with-laurel",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/mlt-aikins-launches-laurel-as-its-ai-timekeeping-platform",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/introducing-self-serve-ocg-upload",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/a-team-connected-by-time",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/why-laurel-exists",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/why-i-joined-laurel-scaling-an-industry-leader-to-new-heights",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/laurel-adds-world-class-talent-from-airbnb-templafy-and-deepstructure-io-to-accelerate-global-expansion",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/resources-post/goodbye-time-by-ping-hello-laurel-the-story-behind-our-new-identity",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/success-stories/tonkon-torp",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/success-stories/lerners",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/success-stories/am-law-200-top-vc-firm",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/success-stories/wright-lindsey-jennings",count:2,types:["Article","BreadcrumbList"],cms:true},
+    {url:"https://www.laurel.ai/success-stories/laurel-drives-annual-profit-for-big-four-firm",count:2,types:["Article","BreadcrumbList"],cms:true},
+    // Gap pages — only BreadcrumbList
+    {url:"https://www.laurel.ai/careers",count:1,types:["BreadcrumbList"],cms:true,gap:true,missing:"JobPosting, EmployerAggregateRating"},
+    {url:"https://www.laurel.ai/contact",count:1,types:["BreadcrumbList"],cms:true,gap:true,missing:"ContactPage"},
+    {url:"https://www.laurel.ai/customer-success",count:1,types:["BreadcrumbList"],cms:true,gap:true,missing:"ItemList (case study collection)"},
+    {url:"https://www.laurel.ai/deployment",count:1,types:["BreadcrumbList"],cms:true,gap:true,missing:"Service, HowTo"},
+    {url:"https://www.laurel.ai/get-a-demo",count:1,types:["BreadcrumbList"],cms:true,gap:true,missing:"ContactPage, Event"},
+    {url:"https://www.laurel.ai/partnerships",count:1,types:["BreadcrumbList"],cms:true,gap:true,missing:"Organization (partner mentions)"},
+    {url:"https://www.laurel.ai/privacy-policy",count:1,types:["BreadcrumbList"],cms:true,gap:true,missing:"WebPage"},
+    {url:"https://www.laurel.ai/security",count:1,types:["BreadcrumbList"],cms:true,gap:true,missing:"FAQPage, Certification"},
+    {url:"https://www.laurel.ai/state-of-work-2025",count:1,types:["BreadcrumbList"],cms:true,gap:true,missing:"Report (Article), Dataset"},
+  ];
+
+  // Main table
+  document.getElementById('schema-body').innerHTML = SCHEMA_DATA.map(r => {
+    const typeStr = r.types.join(', ');
+    const countCls = r.gap ? 'orange' : 'green';
+    const gapCell = r.gap ? `<td style="color:var(--orange);font-size:12px">⚠️ Add: ${r.missing}</td>` : `<td style="color:var(--text-dim);font-size:12px">—</td>`;
+    return `<tr>${urlCell(r.url)}<td>${pill(r.count+'', countCls)}</td><td style="font-size:12px">${esc(typeStr)}</td>${gapCell}<td>${pill('CMS-injected','orange')}</td></tr>`;
+  }).join('');
 }
 
 function renderBroken() {
