@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>laurel.ai — Site Audit Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --blue: #7C6FF7;
+    --blue-light: #a99ef9;
+    --blue-dim: rgba(124,111,247,0.15);
+    --blue-dim2: rgba(124,111,247,0.08);
+    --bg: #0d0d0d;
+    --bg2: #141414;
+    --bg3: #1a1a1a;
+    --bg4: #222222;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f0f0;
+    --text-muted: #888;
+    --text-dim: #555;
+    --green: #00d97e;
+    --orange: #ff9500;
+    --red: #ff3b30;
+    --yellow: #ffd60a;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  h1,h2,h3,h4,h5 { font-family: 'Rethink Sans', sans-serif; font-weight: 700; }
+
+  .header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+  .wordmark { font-family: 'Rethink Sans', sans-serif; font-weight: 800; font-size: 22px; color: var(--blue-light); letter-spacing: -0.5px; }
+  .header-meta { display: flex; align-items: center; gap: 20px; }
+  .badge { background: var(--blue-dim); color: var(--blue-light); border: 1px solid rgba(124,111,247,0.3); border-radius: 20px; padding: 3px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+  .audit-date { color: var(--text-muted); font-size: 12px; }
+  .loading-bar { height: 3px; background: var(--bg3); }
+  .loading-bar-inner { height: 100%; background: linear-gradient(90deg, var(--blue), var(--blue-light)); width: 100%; }
+
+  .tabs-wrapper { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 4px; overflow-x: auto; }
+  .tab-btn { background: none; border: none; color: var(--text-muted); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 14px 16px 12px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: color 0.15s, border-color 0.15s; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--blue-light); border-bottom-color: var(--blue-light); }
+
+  .content { padding: 32px; max-width: 1400px; margin: 0 auto; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--blue); opacity: 0.5; }
+  .stat-card.highlight::before { opacity: 1; background: var(--red); }
+  .stat-card.warn::before { opacity: 1; background: var(--orange); }
+  .stat-card.ok::before { opacity: 1; background: var(--green); }
+  .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 10px; }
+  .stat-value { font-family: 'Rethink Sans', sans-serif; font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; }
+  .stat-value.blue { color: var(--blue-light); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.orange { color: var(--orange); }
+  .stat-value.red { color: var(--red); }
+  .stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+  .chart-grid.thirds { grid-template-columns: 1fr 1fr 1fr; }
+  .chart-grid.wide { grid-template-columns: 2fr 1fr; }
+  @media (max-width: 900px) { .chart-grid, .chart-grid.thirds, .chart-grid.wide { grid-template-columns: 1fr; } }
+  .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+  .chart-title { font-family: 'Rethink Sans', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .chart-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); flex-shrink: 0; }
+  .chart-wrap { position: relative; height: 240px; }
+
+  .table-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+  .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .table-title { font-family: 'Rethink Sans', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
+  .table-count { font-size: 12px; color: var(--text-muted); background: var(--bg3); padding: 2px 8px; border-radius: 10px; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: var(--bg3); color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; padding: 10px 16px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 16px; font-size: 12.5px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  td.url-cell { font-family: 'DM Sans', monospace; font-size: 11.5px; color: var(--blue-light); max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  td.url-cell a { color: inherit; text-decoration: none; }
+  td.url-cell a:hover { text-decoration: underline; }
+
+  .pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .pill-blue { background: var(--blue-dim); color: var(--blue-light); }
+  .pill-green { background: rgba(0,217,126,0.12); color: var(--green); }
+  .pill-orange { background: rgba(255,149,0,0.12); color: var(--orange); }
+  .pill-red { background: rgba(255,59,48,0.12); color: var(--red); }
+  .pill-grey { background: var(--bg4); color: var(--text-muted); }
+  .pill-yellow { background: rgba(255,214,10,0.12); color: var(--yellow); }
+
+  .section-heading { font-family: 'Rethink Sans', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--blue-light); margin-bottom: 14px; margin-top: 28px; }
+  .section-heading:first-child { margin-top: 0; }
+
+  .alert-box { background: rgba(255,59,48,0.08); border: 1px solid rgba(255,59,48,0.2); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; }
+  .alert-box.warn { background: rgba(255,149,0,0.08); border-color: rgba(255,149,0,0.2); }
+  .alert-title { font-family: 'Rethink Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--red); margin-bottom: 4px; }
+  .alert-box.warn .alert-title { color: var(--orange); }
+  .alert-text { font-size: 12.5px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="wordmark">laurel.ai</div>
+  <div class="header-meta">
+    <span class="badge">Site Audit</span>
+    <span class="audit-date">May 11, 2026 · Screaming Frog</span>
+  </div>
+</div>
+<div class="loading-bar"><div class="loading-bar-inner"></div></div>
+
+<div class="tabs-wrapper">
+  <button class="tab-btn active" onclick="switchTab('summary')">Summary</button>
+  <button class="tab-btn" onclick="switchTab('response')">Response Codes</button>
+  <button class="tab-btn" onclick="switchTab('indexability')">Indexability</button>
+  <button class="tab-btn" onclick="switchTab('onpage')">On-Page</button>
+  <button class="tab-btn" onclick="switchTab('content')">Content Issues</button>
+  <button class="tab-btn" onclick="switchTab('schema')">Structured Data</button>
+  <button class="tab-btn" onclick="switchTab('broken')">Broken Links</button>
+  <button class="tab-btn" onclick="switchTab('redirects')">Redirects</button>
+  <button class="tab-btn" onclick="switchTab('clean')">Clean Pages</button>
+</div>
+
+<!-- ═══════════════════ SUMMARY ═══════════════════ -->
+<div id="tab-summary" class="tab-pane active">
+<div class="content">
+  <div class="alert-box">
+    <div class="alert-title">🚨 Critical: Zero structured data across all 58 indexable pages</div>
+    <div class="alert-text">No Schema.org markup detected anywhere — homepage, product pages, blog posts, success stories. This is a major missed opportunity for rich results and knowledge graph visibility.</div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">Total URLs Crawled</div><div class="stat-value blue">490</div><div class="stat-sub">All resource types</div></div>
+    <div class="stat-card ok"><div class="stat-label">Indexable Pages</div><div class="stat-value green">58</div><div class="stat-sub">HTML, 200 OK</div></div>
+    <div class="stat-card"><div class="stat-label">Non-Indexable</div><div class="stat-value">28</div><div class="stat-sub">Canonical, redirected, blocked</div></div>
+    <div class="stat-card highlight"><div class="stat-label">No Structured Data</div><div class="stat-value red">58</div><div class="stat-sub">100% of indexable pages</div></div>
+    <div class="stat-card warn"><div class="stat-label">Missing Titles</div><div class="stat-value orange">9</div><div class="stat-sub">Indexable pages</div></div>
+    <div class="stat-card warn"><div class="stat-label">Missing Meta Desc</div><div class="stat-value orange">4</div><div class="stat-sub">Indexable pages</div></div>
+    <div class="stat-card warn"><div class="stat-label">Images Missing Alt</div><div class="stat-value orange">282</div><div class="stat-sub">Across all pages</div></div>
+    <div class="stat-card ok"><div class="stat-label">Missing H1s</div><div class="stat-value green">0</div><div class="stat-sub">All pages have H1</div></div>
+    <div class="stat-card"><div class="stat-label">301 Redirects</div><div class="stat-value">24</div><div class="stat-sub">Mostly old taxonomy</div></div>
+    <div class="stat-card"><div class="stat-label">External 404s</div><div class="stat-value">10</div><div class="stat-sub">Dead outbound links</div></div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Indexability Breakdown</div>
+      <div class="chart-wrap"><canvas id="chart-indexability"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Response Code Distribution</div>
+      <div class="chart-wrap"><canvas id="chart-response"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>On-Page Issues</div>
+      <div class="chart-wrap"><canvas id="chart-onpage"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot"></span>Crawl Depth Distribution (Indexable)</div>
+      <div class="chart-wrap"><canvas id="chart-depth"></canvas></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ RESPONSE CODES ═══════════════════ -->
+<div id="tab-response" class="tab-pane">
+<div class="content">
+  <div class="stat-grid">
+    <div class="stat-card ok"><div class="stat-label">200 OK</div><div class="stat-value green">424</div></div>
+    <div class="stat-card warn"><div class="stat-label">301 Moved</div><div class="stat-value orange">24</div></div>
+    <div class="stat-card"><div class="stat-label">302 Found</div><div class="stat-value">5</div></div>
+    <div class="stat-card"><div class="stat-label">307 Temp Redirect</div><div class="stat-value">3</div></div>
+    <div class="stat-card highlight"><div class="stat-label">404 Not Found</div><div class="stat-value red">10</div></div>
+    <div class="stat-card highlight"><div class="stat-label">401 Unauthorized</div><div class="stat-value red">9</div></div>
+    <div class="stat-card highlight"><div class="stat-label">403 Forbidden</div><div class="stat-value red">4</div></div>
+    <div class="stat-card"><div class="stat-label">Failed/DNS</div><div class="stat-value">17</div><div class="stat-sub">DNS fail, blocked, timeout</div></div>
+  </div>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">All Response Codes</span><span class="table-count" id="rc-count"></span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Status</th><th>Type</th><th>Redirect To</th></tr></thead>
+        <tbody id="rc-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ INDEXABILITY ═══════════════════ -->
+<div id="tab-indexability" class="tab-pane">
+<div class="content">
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">All Indexable Pages</span><span class="table-count">58 pages</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Status</th><th>Title</th><th>H1</th><th>Words</th><th>Inlinks</th><th>Depth</th></tr></thead>
+        <tbody id="idx-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Non-Indexable Pages</span><span class="table-count" id="nidx-count"></span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Status</th><th>Reason</th><th>Canonical</th></tr></thead>
+        <tbody id="nidx-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ ON-PAGE ═══════════════════ -->
+<div id="tab-onpage" class="tab-pane">
+<div class="content">
+  <p class="section-heading">Missing Titles</p>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Indexable pages with no &lt;title&gt; tag</span><span class="table-count">9 pages</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>H1</th><th>Inlinks</th></tr></thead>
+        <tbody id="no-title-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="section-heading">Long Titles (&gt;60 chars)</p>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Titles exceeding 60 characters (may truncate in SERP)</span><span class="table-count">12 pages</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Title</th><th>Length</th></tr></thead>
+        <tbody id="long-title-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="section-heading">Missing Meta Descriptions</p>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Indexable pages with no meta description</span><span class="table-count">4 pages</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Title</th><th>H1</th></tr></thead>
+        <tbody id="no-meta-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="section-heading">Multiple H1s</p>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Pages with more than one H1 tag</span><span class="table-count">2 pages</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>H1-1</th><th>H1-2</th></tr></thead>
+        <tbody id="multi-h1-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ CONTENT ISSUES ═══════════════════ -->
+<div id="tab-content" class="tab-pane">
+<div class="content">
+  <div class="alert-box warn">
+    <div class="alert-title">⚠️ Duplicate Title Tag: 11 pages share the same title</div>
+    <div class="alert-text">"Laurel Blog: Team Management, AI, and Professional Insights" — the main /resources page and all category filter pages (?category=Value, ?category=Press, etc.) share an identical title. Category pages are canonicalized, but pagination pages (?06a5c3c3_page=2…4) are not and are indexable.</div>
+  </div>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Duplicate Title: "Laurel Blog: Team Management, AI, and Professional Insights"</span><span class="table-count">11 pages</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Indexability</th></tr></thead>
+        <tbody id="dup-title-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="section-heading" style="margin-top:28px">Images Missing Alt Text</p>
+  <div class="alert-box warn">
+    <div class="alert-title">⚠️ 282 images are missing alt text</div>
+    <div class="alert-text">Images without alt text impact accessibility (WCAG) and lose image search signals. Prioritise product screenshots, case study visuals, and logo/partner images.</div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ STRUCTURED DATA ═══════════════════ -->
+<div id="tab-schema" class="tab-pane">
+<div class="content">
+  <div class="alert-box">
+    <div class="alert-title">🚨 Zero structured data detected on all 58 indexable pages</div>
+    <div class="alert-text">Screaming Frog found no Schema.org JSON-LD or microdata on any indexable page. This means no eligibility for rich results: no Article cards, no FAQPage dropdowns, no Organization knowledge panel, no BreadcrumbList, no SoftwareApplication rich card. This is the highest-priority SEO gap on the site.</div>
+  </div>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Indexable pages with no structured data</span><span class="table-count">58 / 58 pages</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Schema Count</th><th>Recommended Schemas</th></tr></thead>
+        <tbody id="schema-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ BROKEN LINKS ═══════════════════ -->
+<div id="tab-broken" class="tab-pane">
+<div class="content">
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">External 404 Not Found</span><span class="table-count">10 URLs</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Note</th></tr></thead>
+        <tbody id="broken-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Unauthorized (401) — Inaccessible Embeds</span><span class="table-count">9 URLs</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Note</th></tr></thead>
+        <tbody id="auth-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Forbidden (403)</span><span class="table-count">4 URLs</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th></tr></thead>
+        <tbody id="forbidden-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">DNS Lookup Failed</span><span class="table-count">5 URLs</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Note</th></tr></thead>
+        <tbody id="dns-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ REDIRECTS ═══════════════════ -->
+<div id="tab-redirects" class="tab-pane">
+<div class="content">
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">All Redirects (301 / 302 / 307)</span><span class="table-count">32 URLs</span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Code</th><th>Redirects To</th></tr></thead>
+        <tbody id="redir-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ CLEAN PAGES ═══════════════════ -->
+<div id="tab-clean" class="tab-pane">
+<div class="content">
+  <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Pages that are indexable, have a title, meta description, H1, and 200 status. Note: all pages still lack structured data.</p>
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Pages with all core on-page elements present</span><span class="table-count" id="clean-count"></span></div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>URL</th><th>Title</th><th>H1</th><th>Words</th><th>Inlinks</th></tr></thead>
+        <tbody id="clean-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────
+const INDEXABLE = [{"url":"https://www.laurel.ai/","title":"AI Timekeeping & Timesheet Software for Firms","status":"200","h1":"The AI Platform That Maps Time to Outcomes","meta":"Laurel applies AI to automate timesheets for enterprise legal and accounting firms, helping them save time, grow profit, and answer vital efficiency questions.","words":"1136","inlinks":"188","crawl_depth":"1"},{"url":"https://www.laurel.ai/resources-post/signal-work-intelligence","title":"Laurel Signal: Where Time Becomes Intelligence","status":"200","h1":"Laurel Signal: Where Time Becomes Intelligence","meta":"Laurel Signal turns everyday work into measurable intelligence. Auto-capture 99% of billable activity and gain real-time insight into profitability.","words":"1878","inlinks":"156","crawl_depth":"2"},{"url":"https://www.laurel.ai/product","title":"Automated Time Tracking Software | Laurel","status":"200","h1":"Automate timesheets. Save hours. Increase revenue.","meta":"Laurel's time tracking software works in the background to capture your activities, freeing you to go about your day-to-day work as you normally would.","words":"758","inlinks":"318","crawl_depth":"2"},{"url":"https://www.laurel.ai/success-stories/tonkon-torp","title":"Tonkon Torp Case Study | Laurel","status":"200","h1":"Tonkon Torp","meta":"Tonkon Torp LLP embraces Laurel for superior client service and timekeeper happiness","words":"1623","inlinks":"13","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources-post/laurel-achieves-soc-2-type-ii-certification-building-with-confidence-for-secure-and-efficient-digital-work-management","title":"Laurel Achieves SOC 2 Type II Certification | Security & Compliance","status":"200","h1":"Laurel Achieves SOC 2 Type II Certification for Secure Operations","meta":"Laurel is proud to announce that we have received our SOC 2 Type 2 report.","words":"1177","inlinks":"77","crawl_depth":"2"},{"url":"https://www.laurel.ai/careers","title":"Join Laurel: Help Redefine How Work Time Is Measured","status":"200","h1":"Help us change how the world experiences time.","meta":"Come shape the future of time. We are a team connected by time because life has taught us the value of time.","words":"906","inlinks":"217","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources-post/unveiling-the-data-dashboard-a-glimpse-into-the-future","title":"Data Dashboard for Professional Services: Visibility Into Firm Performance","status":"200","h1":"Redefining Value in Professional Services: A Data-Driven Approach","meta":"Discover how Laurel aims to redefine the metrics of value and productivity in professional services.","words":"1726","inlinks":"157","crawl_depth":"2"},{"url":"https://www.laurel.ai/privacy-policy","title":"Our Privacy Policy | Laurel","status":"200","h1":"Privacy Policy","meta":"Learn how Laurel collects, uses, and protects your data. We prioritize your privacy and security at every step.","words":"4594","inlinks":"94","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources-post/implementation-that-doesnt-fatigue","title":"Streamlined Tech Implementation: A Guide for IT & Finance Leaders","status":"200","h1":"Laurel, An Implementation That Doesn't Fatigue","meta":"Facing implementation fatigue in your organization? Discover Laurel's engineering-first approach.","words":"1018","inlinks":"80","crawl_depth":"2"},{"url":"https://www.laurel.ai/customer-success","title":"Customer Stories: How Firms Scale with Laurel AI","status":"200","h1":"Success Stories","meta":"Success stories and use cases from Laurel's customers.","words":"708","inlinks":"154","crawl_depth":"2"},{"url":"https://www.laurel.ai/deployment","title":"Easy Time Tracking and Timesheet Automation | Laurel","status":"200","h1":"Deploy Laurel in no time","meta":"We've built Laurel to deploy in a matter of weeks, not months.","words":"958","inlinks":"77","crawl_depth":"2"},{"url":"https://www.laurel.ai/solutions/timekeepers","title":"AI Time Tracking for Timekeepers | Automate Timesheets","status":"200","h1":"Because You Don't Have Time for This Sheet.","meta":"Stop spending time on timesheets. Laurel captures billable minutes automatically.","words":"532","inlinks":"162","crawl_depth":"2"},{"url":"https://www.laurel.ai/get-a-demo","title":"Request a Demo | See AI Timekeeping in Action","status":"200","h1":"Looking for more time in your day? Schedule a demo","meta":"See how Laurel automates timekeeping and increases firm leverage.","words":"621","inlinks":"151","crawl_depth":"2"},{"url":"https://www.laurel.ai/security","title":"Enterprise Data Security & Compliance | Laurel","status":"200","h1":"Protecting your data is table stakes","meta":"Securing your data and your clients' data is mission critical for your firm.","words":"1231","inlinks":"285","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources-post/meeting-users-where-they-are-embracing-modernization-with-laurel","title":"Modernization in Professional Services: Meeting Users Where They Are","status":"200","h1":"Meeting Users Where They Are: Embracing Modernization with Laurel","meta":"Confront the real challenges of change management while adapting to a more efficient, modern workflow.","words":"1763","inlinks":"93","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources-post/why-ai-accelerates-the-wrong-work","title":"Why AI Accelerates the Wrong Work | Laurel","status":"200","h1":"Why AI Accelerates the Wrong Work","meta":"Speed is only useful if you're going the right direction.","words":"1027","inlinks":"17","crawl_depth":"2"},{"url":"https://www.laurel.ai/contact","title":"Contact Laurel | Get Support & Answers","status":"200","h1":"Have a question? Reach out","meta":"Have questions about Laurel? Connect with our team.","words":"633","inlinks":"75","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources-post/revenue-operations-levers","title":"","status":"200","h1":"Turning Data into Dollars: The Three Operational Levers Every Managing Partner Needs to Know","meta":"Learn the key revenue operations levers that drive profitability in professional services firms.","words":"1323","inlinks":"85","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources-post/mapping-time-to-outcomes","title":"","status":"200","h1":"Mapping Time to Outcomes","meta":"","words":"452","inlinks":"17","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources","title":"Laurel Blog: Team Management, AI, and Professional Insights","status":"200","h1":"Time Tracking Resources & Industry Insights","meta":"Read thought leadership, case studies, and industry insights from the Laurel team.","words":"1180","inlinks":"351","crawl_depth":"2"},{"url":"https://www.laurel.ai/partnerships","title":"Partnerships | Laurel","status":"200","h1":"Laurel Partnerships","meta":"Learn about Laurel's partnerships with leading organizations like Workday, Microsoft, BDO Alliance, and PwC.","words":"410","inlinks":"205","crawl_depth":"2"},{"url":"https://www.laurel.ai/solutions/legal","title":"Legal Timekeeping Solutions | Laurel","status":"200","h1":"Maximize Realization. Minimize Write-Offs.","meta":"Navigate the demands of legal timekeeping with ease.","words":"715","inlinks":"165","crawl_depth":"2"},{"url":"https://www.laurel.ai/signal","title":"Product - Signal","status":"200","h1":"Turn time into insight with Laurel Signal","meta":"Laurel's time tracking software works in the background to capture your activities.","words":"577","inlinks":"146","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources-post/mlt-aikins-launches-laurel-as-its-ai-timekeeping-platform","title":"","status":"200","h1":"MLT Aikins Launches Laurel as its AI Timekeeping Platform","meta":"","words":"911","inlinks":"21","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources-post/refactoring-the-factory-model","title":"Refactoring The Factory Model | Laurel","status":"200","h1":"Refactoring The Factory Model","meta":"CEO Ryan Alshak explores why it's time to evolve the way we work.","words":"1809","inlinks":"88","crawl_depth":"2"},{"url":"https://www.laurel.ai/solutions/accounting","title":"Accounting Software: Maximize Utilization, Minimize Guesswork","status":"200","h1":"Maximize Utilization. Minimize Guesswork.","meta":"Capture missed chargeable time and reveal true project costs.","words":"696","inlinks":"164","crawl_depth":"2"},{"url":"https://www.laurel.ai/resources-post/enhancing-legal-and-accounting-workflows-with-ai-insights-into-work-code-prediction","title":"AI Work Code Prediction for Legal & Accounting Efficiency","status":"200","h1":"Enhancing Legal and Accounting Workflows with AI","meta":"Unlock the potential of AI in legal and accounting firms with Laurel's work code prediction.","words":"1484","inlinks":"22","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/the-second-job","title":"The Second Job | Laurel","status":"200","h1":"The Second Job","meta":"Every lawyer and accountant is doing a job that never appears in their offer letter.","words":"1652","inlinks":"36","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/going-beyond-fixed-rules-with-machine-learning-to-truly-automate-timekeeping","title":"Machine Learning for Timekeeping Automation | Laurel AI Platform","status":"200","h1":"Going Beyond Fixed Rules With Machine Learning to Truly Automate Timekeeping","meta":"Although both machine learning and fixed rules fall under the umbrella of AI, they're vastly different.","words":"1655","inlinks":"18","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/2025-end-of-year-innovation-roundup","title":"Laurel's 2025 Breakthroughs in AI-Native Timekeeping","status":"200","h1":"The Year Laurel Rewrote Timekeeping: 2024 Innovation Roundup","meta":"Laurel transformed timekeeping in 2025 with AI-driven automation.","words":"2760","inlinks":"21","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/maximum-utilization-for-amlaw-big-4-firms-our-2024-in-review","title":"Maximum Utilization for AmLaw & Big-4 Firms: 2024 in Review","status":"200","h1":"Maximizing Utilization, Cutting Manual Time Entry, & More: Our 2024 in Review","meta":"Reflecting on a Year of Unprecedented Growth and Innovation.","words":"1644","inlinks":"20","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/introducing-self-serve-ocg-upload","title":"","status":"200","h1":"Reduce Write-Downs and Bill Faster. Laurel's Compliance Engine Just Got Smarter.","meta":"Introducing self-serve OCG upload for faster, easier billing configuration in Laurel.","words":"1609","inlinks":"22","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/how-were-building-for-the-future","title":"How We're Building for the Future | Laurel","status":"200","h1":"How We're Building for the Future: Talent, Technology, and a Clear Vision","meta":"Laurel welcomes new engineering and product leaders.","words":"963","inlinks":"15","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/watson-farley-williams-selects-laurel-as-its-global-ai-time-platform","title":"Watson Farley & Williams Selects Laurel as Global AI Time Platform","status":"200","h1":"Watson Farley & Williams Selects Laurel as its Global AI Time Platform","meta":"International law firm Watson Farley & Williams will deploy Laurel across all 800 fee earners worldwide.","words":"1016","inlinks":"19","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/your-ai-strategy-is-built-on-a-broken-foundation","title":"Your AI Strategy Is Being Built on a Broken Foundation | Laurel","status":"200","h1":"Your AI Strategy Is Being Built on a Broken Foundation","meta":"Most enterprises are deploying AI to accelerate existing work patterns.","words":"1141","inlinks":"15","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/dawn-sharifan-jacob-sills-join-laurel","title":"Dawn Sharifan and Jacob Sills Join Laurel | Laurel","status":"200","h1":"Welcoming Two Leaders Who Will Help Shape Laurel's Next Chapter","meta":"Laurel welcomes Dawn Sharifan as Chief People Officer and Jacob Sills as CFO.","words":"997","inlinks":"20","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/the-15-minute-myth","title":"The 15-Minute Myth: The Cognitive Cost of Workplace Interruptions | Laurel","status":"200","h1":"The 15-Minute Myth: The Cognitive Impossibility of Modern Work","meta":"Interruptions every 15 minutes make sustained focus neurologically impossible.","words":"1395","inlinks":"15","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/transform-your-bottom-line","title":"How 20 Minutes a Day Can Transform Your Firm's Bottom Line | Laurel","status":"200","h1":"How 20 Minutes a Day Can Transform Your Firm's Bottom Line","meta":"Professional services firms lose $26,000 per professional annually in unrecorded work.","words":"1262","inlinks":"15","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/what-is-work-intelligence","title":"What is Work Intelligence | Laurel","status":"200","h1":"What Is Work Intelligence, and Why Your AI Strategy Depends on It","meta":"25% of your organization's work is invisible.","words":"1526","inlinks":"22","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/heres-what-an-ai-first-company-looks-like","title":"","status":"200","h1":"We're an AI-First Company. Here's What That Actually Looks Like.","meta":"","words":"1646","inlinks":"20","crawl_depth":"3"},{"url":"https://www.laurel.ai/success-stories/lerners","title":"Lerners Lawyers Case Study | Laurel","status":"200","h1":"Lerners Lawyers","meta":"Leading Ontario firm","words":"1612","inlinks":"10","crawl_depth":"3"},{"url":"https://www.laurel.ai/success-stories/am-law-200-top-vc-firm","title":"AM Law 200 Top VC Firm Case Study | Laurel","status":"200","h1":"AM Law 200 Top VC Firm","meta":"For this top Am Law 200 Firm in Venture Capital, Laurel is a competitive advantage","words":"1381","inlinks":"10","crawl_depth":"3"},{"url":"https://www.laurel.ai/success-stories/wright-lindsey-jennings","title":"Wright Lindsey Jennings Case Study | Laurel","status":"200","h1":"Wright Lindsey Jennings","meta":"Premier law firm in Arkansas and beyond","words":"1106","inlinks":"8","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/soc-2-compliant","title":"We're SOC 2 compliant — Here's why that matters for you","status":"200","h1":"Why SOC 2 Compliance Matters for Your Firm","meta":"Laurel is proud to announce that we have received our SOC 2 Type 1 report.","words":"1133","inlinks":"11","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/why-laurel-exists","title":"","status":"200","h1":"Why Laurel Exists","meta":"On February 1st, we said goodbye to Time by Ping and introduced the world to Laurel.","words":"1553","inlinks":"15","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/using-ai-to-illuminate-the-true-cost-value-of-service-delivery","title":"True Cost of Service Delivery: AI for Accounting Firms","status":"200","h1":"Using AI to Illuminate the True Cost—and Value—of Service Delivery","meta":"Discover how AI illuminates the true cost of your accounting services.","words":"1845","inlinks":"19","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/business-impact","title":"Increase Profitability | Time Efficiency | Laurel Software","status":"200","h1":"Maximize Profit with Laurel: Turning Time into a Strategic Business Asset","meta":"Uncover Laurel's time-leveraging capability, focused on turning time into a strategic asset.","words":"1213","inlinks":"16","crawl_depth":"3"},{"url":"https://www.laurel.ai/success-stories/laurel-drives-annual-profit-for-big-four-firm","title":"Laurel drives +$59M in annual profit for Big Four firm","status":"200","h1":"Laurel drives +$59M in annual profit for Big Four firm","meta":"","words":"582","inlinks":"6","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/the-future-of-fixed-fee-profitability","title":"The Future of Fixed-Fee Profitability","status":"200","h1":"The Future of Fixed-Fee Profitability","meta":"Most firms believe they're managing fixed-fee pricing effectively.","words":"1229","inlinks":"11","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/laurel-raises-36-5m-series-b-to-return-time-to-the-world","title":"Laurel Raises $36.5M Series B to Transform Professional Services","status":"200","h1":"Laurel (Previously Time by Ping) Raises $36.5M Series B To Return Time To The World","meta":"Time by Ping - now Laurel - today announced $36.5M in Series B funding.","words":"1186","inlinks":"12","crawl_depth":"3"},{"url":"https://www.laurel.ai/resources-post/goodbye-time-by-ping-hello-laurel-the-story-behind-our-new-identity","title":"Goodbye Time by Ping, Hello Laurel: Our New Identity & Vision","status":"200","h1":"Goodbye Time by Ping. Hello Laurel: The Story Behind Our New Identity","meta":"We are officially launching our new name and brand.","words":"1620","inlinks":"9","crawl_depth":"4"},{"url":"https://www.laurel.ai/state-of-work-2025","title":"The State of Work 2025: AI, Pricing, and Leverage","status":"200","h1":"What Work Truly Matters?","meta":"We analyzed work time across thousands of professionals to identify trends.","words":"733","inlinks":"23","crawl_depth":"4"},{"url":"https://www.laurel.ai/resources-post/a-team-connected-by-time","title":"A Team Connected By Time | Laurel","status":"200","h1":"A Team Connected By Time","meta":"Hear from our CEO on why this mission will drive us to change the world.","words":"1109","inlinks":"13","crawl_depth":"4"},{"url":"https://www.laurel.ai/resources-post/future-proofing-the-legal-practice-embracing-generative-ai","title":"Future-Proofing the Legal Practice: Embracing Generative AI","status":"200","h1":"Future-Proofing the Legal Practice: Embracing Generative AI","meta":"We're past the 'rise' of generative AI. AI is here to stay.","words":"1659","inlinks":"8","crawl_depth":"4"},{"url":"https://www.laurel.ai/resources-post/why-i-joined-laurel-scaling-an-industry-leader-to-new-heights","title":"","status":"200","h1":"Why I Joined Laurel: Scaling an Industry Leader to New Heights","meta":"Read insights from team members about joining Laurel.","words":"1106","inlinks":"13","crawl_depth":"4"},{"url":"https://www.laurel.ai/resources-post/laurel-adds-world-class-talent-from-airbnb-templafy-and-deepstructure-io-to-accelerate-global-expansion","title":"","status":"200","h1":"Laurel Adds World-Class Leadership in Product, Sales, and AI to Accelerate Our Expansion","meta":"Laurel announces three key leadership hires following its $100M Series C.","words":"1057","inlinks":"13","crawl_depth":"4"},{"url":"https://www.laurel.ai/resources-post/ai-time-platform-laurel-raises-100-million-to-transform-the-professional-services-industry","title":"","status":"200","h1":"AI Time Platform Laurel Raises $100 Million to Transform the Professional Services Industry","meta":"Laurel announces $100M funding to expand AI time intelligence platform.","words":"1739","inlinks":"8","crawl_depth":"4"},{"url":"https://www.laurel.ai/resources-post/meeting-multitasking-cost","title":"The Meeting Tax | Laurel","status":"200","h1":"The Meeting Tax: Why 46% Multitasking Signals a Productivity Problem","meta":"Your team is already telling you which meetings don't work.","words":"1524","inlinks":"8","crawl_depth":"6"}];
+
+const NON_INDEXABLE = [
+  {url:"https://www.laurel.ai/resources?category=Value",status:"200",reason:"Canonicalised",canonical:"https://www.laurel.ai/resources"},
+  {url:"https://www.laurel.ai/resources?category=Implementation",status:"200",reason:"Canonicalised",canonical:"https://www.laurel.ai/resources"},
+  {url:"https://www.laurel.ai/resources?category=Press",status:"200",reason:"Canonicalised",canonical:"https://www.laurel.ai/resources"},
+  {url:"https://www.laurel.ai/resources?category=Product",status:"200",reason:"Canonicalised",canonical:"https://www.laurel.ai/resources"},
+  {url:"https://www.laurel.ai/resources?category=Team",status:"200",reason:"Canonicalised",canonical:"https://www.laurel.ai/resources"},
+  {url:"https://www.laurel.ai/resources?category=Security",status:"200",reason:"Canonicalised",canonical:"https://www.laurel.ai/resources"},
+  {url:"https://laurel.ai/",status:"301",reason:"Redirected",canonical:""},
+  {url:"https://www.laurel.ai/get-a-demo--old",status:"301",reason:"Redirected",canonical:""},
+  {url:"https://www.laurel.ai/about",status:"301",reason:"Redirected",canonical:""},
+  {url:"https://www.laurel.ai/resource-category/for-professionals",status:"301",reason:"Redirected",canonical:""},
+  {url:"https://www.laurel.ai/resource-category/for-org-leaders",status:"301",reason:"Redirected",canonical:""},
+  {url:"https://www.laurel.ai/resource-category/for-it-leaders",status:"301",reason:"Redirected",canonical:""},
+  {url:"https://www.laurel.ai/resource-category/press",status:"301",reason:"Redirected",canonical:""},
+  {url:"https://www.laurel.ai/resource-category/team",status:"301",reason:"Redirected",canonical:""},
+  {url:"https://www.laurel.ai/resource-category/security",status:"301",reason:"Redirected",canonical:""},
+  {url:"https://www.laurel.ai/resource-category/guide",status:"404",reason:"Not Found",canonical:""},
+  {url:"https://app.laurel.ai/",status:"0",reason:"Blocked by robots.txt",canonical:""},
+  {url:"https://trust.laurel.ai/",status:"403",reason:"Forbidden",canonical:""},
+];
+
+const REDIRECTS = [
+  {url:"https://laurel.ai/",code:"301",to:"https://www.laurel.ai/"},
+  {url:"https://www.laurel.ai/get-a-demo--old",code:"301",to:"https://www.laurel.ai/get-a-demo"},
+  {url:"https://www.laurel.ai/about",code:"301",to:"https://www.laurel.ai/"},
+  {url:"https://www.laurel.ai/resource-category/for-professionals",code:"301",to:"https://www.laurel.ai/resources"},
+  {url:"https://www.laurel.ai/resource-category/for-org-leaders",code:"301",to:"https://www.laurel.ai/resources"},
+  {url:"https://www.laurel.ai/resource-category/for-it-leaders",code:"301",to:"https://www.laurel.ai/resources"},
+  {url:"https://www.laurel.ai/resource-category/press",code:"301",to:"https://www.laurel.ai/resources"},
+  {url:"https://www.laurel.ai/resource-category/team",code:"301",to:"https://www.laurel.ai/resources"},
+  {url:"https://www.laurel.ai/resource-category/security",code:"301",to:"https://www.laurel.ai/resources"},
+  {url:"http://laurel.ai/",code:"301",to:"https://laurel.ai/"},
+  {url:"http://laurel.ai/signal",code:"301",to:"https://laurel.ai/signal"},
+  {url:"https://laurel.ai/signal",code:"301",to:"https://www.laurel.ai/signal"},
+  {url:"https://laurel.ai/get-a-demo",code:"301",to:"https://www.laurel.ai/get-a-demo"},
+  {url:"https://www.laurel.ai/resources/?06a5c3c3_page=2",code:"301",to:"https://www.laurel.ai/resources?06a5c3c3_page=2"},
+  {url:"https://www.laurel.ai/resources/?06a5c3c3_page=3",code:"301",to:"https://www.laurel.ai/resources?06a5c3c3_page=3"},
+  {url:"https://twitter.com/getlaurel",code:"301",to:"https://x.com/getlaurel"},
+  {url:"https://twitter.com/sama/status/1574196546039517184",code:"301",to:"https://x.com/sama/status/1574196546039517184"},
+  {url:"https://www.linkedin.com/in/dawnsharifan/",code:"301",to:"https://www.linkedin.com/in/dawnsharifan"},
+  {url:"https://www.allinpodcast.co/",code:"301",to:"https://allin.com/"},
+  {url:"https://www.prweb.com/releases/2023/5/prweb19309984.htm",code:"301",to:"https://www.prweb.com/releases/laurel_the_leading_ai_powered.../prweb19309984.htm"},
+  {url:"https://www.cpapracticeadvisor.com/2024/06/13/review-of-laurel-timekeeping/106791/",code:"301",to:"https://www.cpapracticeadvisor.com/podcasts/review-of-laurel-timekeeping/"},
+  {url:"https://law.com/",code:"301",to:"https://www.law.com/"},
+  {url:"https://unpkg.com/tippy.js@4",code:"302",to:"https://unpkg.com/tippy.js@4.3.5/umd/index.all.min.js"},
+  {url:"https://unpkg.com/tippy.js@4/themes/light-border.css",code:"302",to:"https://unpkg.com/tippy.js@4.3.5/themes/light-border.css"},
+  {url:"https://unpkg.com/popper.js@1",code:"302",to:"https://unpkg.com/popper.js@1.16.1/dist/umd/popper.min.js"},
+  {url:"https://www.history.com/this-day-in-history/fords-assembly-line",code:"302",to:"https://www.seuhistory.com/"},
+  {url:"https://js.hs-scripts.com/46892541.js",code:"307",to:"https://js-na2.hs-scripts.com/46892541.js"},
+  {url:"https://46892541.fs1.hubspotusercontent-na1.net/.../AmLaw%20200%20+%20Laurel.pdf",code:"307",to:"https://46892541.fs1.hubspotusercontent-na2.net/.../AmLaw%20200%20+%20Laurel.pdf"},
+  {url:"https://46892541.fs1.hubspotusercontent-na1.net/.../Big-4%20+%20Laurel.pdf",code:"307",to:"https://46892541.fs1.hubspotusercontent-na2.net/.../Big-4%20+%20Laurel.pdf"},
+];
+
+const NOT_FOUND = [
+  {url:"https://www.laurel.ai/resource-category/guide",note:"Internal 404 — 11 inlinks pointing here (old taxonomy)"},
+  {url:"https://www.laurel.ai/cdn-cgi/l/email-protection",note:"Cloudflare email obfuscation — 6 inlinks"},
+  {url:"https://www.linkedin.com/in/natwelch/",note:"Ex-employee LinkedIn profile (deleted)"},
+  {url:"https://www.linkedin.com/in/suhel-ahmed/",note:"Ex-employee LinkedIn profile (deleted)"},
+  {url:"https://www.linkedin.com/in/jacob-sills/",note:"Ex-employee LinkedIn profile (deleted)"},
+  {url:"https://www.linkedin.com/in/ryan-alshak-72815722/",note:"Ex-CEO LinkedIn profile (missing)"},
+  {url:"https://player.vimeo.com/video/698823904",note:"Broken Vimeo embed"},
+  {url:"https://timebyping.notion.site/Mission-Vision-Values-e5dbf4bec3f7449abd16c0b682fc5bee.",note:"Old Notion page (Time by Ping brand, gone)"},
+  {url:"https://pro.bloomberglaw.com/insights/business-of-law/2023-state-of-practice-legal-landscape/",note:"Dead Bloomberg Law link"},
+  {url:"https://tag.clearbitscripts.com/v1/pk_eb4d01a6a52991f8d1e0015b143449d5/tags.js",note:"Clearbit tracking script 404"},
+];
+
+const AUTH_401 = [
+  {url:"https://player.vimeo.com/video/1163470021",note:"Vimeo embed — private/restricted"},
+  {url:"https://player.vimeo.com/video/791368351",note:"Vimeo embed — private/restricted"},
+  {url:"https://player.vimeo.com/video/791372853",note:"Vimeo embed — private/restricted"},
+  {url:"https://player.vimeo.com/video/791372161",note:"Vimeo embed — private/restricted"},
+  {url:"https://player.vimeo.com/video/791374540",note:"Vimeo embed — private/restricted"},
+  {url:"https://player.vimeo.com/video/791373803",note:"Vimeo embed — private/restricted"},
+  {url:"https://player.vimeo.com/video/1178838543",note:"Vimeo embed — private/restricted"},
+  {url:"https://drive.google.com/file/d/1V5PZMmIyqSYjtP0HT-ggBKrkv0Aht3N_/preview",note:"Google Drive embed — not publicly shared"},
+  {url:"https://docs.google.com/presentation/d/e/2PACX-1v.../embed",note:"Google Slides embed — not publicly shared"},
+];
+
+const FORBIDDEN_403 = [
+  {url:"https://trust.laurel.ai/"},
+  {url:"https://www.worldcat.org/title/721335045"},
+  {url:"https://www.inc.com/inc5000"},
+  {url:"https://medium.com/time-review/life-is-not-waiting..."},
+];
+
+const DNS_FAIL = [
+  {url:"https://www.timebyping.com/careers",note:"Old brand domain — DNS dead"},
+  {url:"https://www.timebyping.com/",note:"Old brand domain — DNS dead"},
+  {url:"https://www.timebyping.com/contact",note:"Old brand domain — DNS dead"},
+  {url:"https://askwonder.com/research/knowledge-workers-productivity...",note:"Dead external site"},
+  {url:"https://www.timebyping.com/post/refactoring-the-factory-model",note:"Old brand domain — DNS dead"},
+];
+
+const SCHEMA_RECS = {
+  "/": "Organization, WebSite, SoftwareApplication",
+  "/product": "SoftwareApplication, Product",
+  "/signal": "SoftwareApplication",
+  "/solutions/": "Service",
+  "/success-stories/": "Case Study (Article)",
+  "/resources-post/": "Article, BlogPosting",
+  "/resources": "Blog, CollectionPage",
+  "/get-a-demo": "ContactPage",
+  "/careers": "JobPosting",
+  "/security": "Organization",
+  "/partnerships": "Organization",
+  "/state-of-work-2025": "Report (Article)",
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+function pill(text, cls) { return `<span class="pill pill-${cls}">${text}</span>`; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function urlCell(u) { return `<td class="url-cell"><a href="${u}" target="_blank">${esc(u)}</a></td>`; }
+function schemaRec(url) {
+  for (const [seg, rec] of Object.entries(SCHEMA_RECS)) {
+    if (url.includes(seg)) return rec;
+  }
+  return 'Organization, WebPage';
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────
+let rendered = {};
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+  if (!rendered[name]) { renderTab(name); rendered[name] = true; }
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────
+const BLU = '#7C6FF7', BLU2 = '#a99ef9', GRN = '#00d97e', RED = '#ff3b30', ORG = '#ff9500', YEL = '#ffd60a', GRY = '#444';
+Chart.defaults.color = '#888';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = "'DM Sans', system-ui, sans-serif";
+
+function mkDoughnut(id, labels, data, colors) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#141414' }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right', labels: { boxWidth: 12, padding: 16 } } } } });
+}
+function mkBar(id, labels, data, colors) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ data, backgroundColor: colors || BLU, borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(255,255,255,0.05)' } } } } });
+}
+
+// Render charts on load
+window.addEventListener('load', () => {
+  rendered['summary'] = true;
+  mkDoughnut('chart-indexability',
+    ['Indexable','Non-Indexable (Canonical)','Redirected','Blocked/Error'],
+    [58, 10, 15, 3],
+    [GRN, BLU, YEL, GRY]);
+
+  mkDoughnut('chart-response',
+    ['200 OK','301 Redirect','302/307','404 Not Found','401 Unauth','403 Forbidden','Failed'],
+    [424, 24, 8, 10, 9, 4, 17],
+    [GRN, YEL, BLU2, RED, ORG, '#c44', GRY]);
+
+  mkBar('chart-onpage',
+    ['Missing Title','Long Title (>60c)','Missing Meta','Multi H1','Missing Alt'],
+    [9, 12, 4, 2, 282],
+    [RED, ORG, ORG, YEL, ORG]);
+
+  const depthCounts = {};
+  INDEXABLE.forEach(r => { const d = r.crawl_depth||'?'; depthCounts[d] = (depthCounts[d]||0)+1; });
+  const depthLabels = Object.keys(depthCounts).sort();
+  mkBar('chart-depth', depthLabels.map(d => 'Depth '+d), depthLabels.map(d => depthCounts[d]), BLU);
+});
+
+// ── TAB RENDERERS ─────────────────────────────────────────────────────
+function renderTab(name) {
+  if (name === 'response') renderResponse();
+  if (name === 'indexability') renderIndexability();
+  if (name === 'onpage') renderOnPage();
+  if (name === 'content') renderContent();
+  if (name === 'schema') renderSchema();
+  if (name === 'broken') renderBroken();
+  if (name === 'redirects') renderRedirects();
+  if (name === 'clean') renderClean();
+}
+
+function renderResponse() {
+  const allResp = [
+    ...NOT_FOUND.map(r=>({url:r.url,code:'404',status:'Not Found',to:''})),
+    ...AUTH_401.map(r=>({url:r.url,code:'401',status:'Unauthorized',to:''})),
+    ...FORBIDDEN_403.map(r=>({url:r.url,code:'403',status:'Forbidden',to:''})),
+    ...DNS_FAIL.map(r=>({url:r.url,code:'0',status:'DNS Fail',to:''})),
+    ...REDIRECTS.map(r=>({url:r.url,code:r.code,status:r.code==='301'?'Moved Permanently':r.code==='302'?'Found':'Temp Redirect',to:r.to})),
+    ...INDEXABLE.map(r=>({url:r.url,code:'200',status:'OK',to:''})),
+  ];
+  document.getElementById('rc-count').textContent = allResp.length + ' URLs';
+  const tbody = document.getElementById('rc-body');
+  tbody.innerHTML = allResp.map(r => {
+    const cls = r.code==='200'?'green':r.code.startsWith('3')?'yellow':r.code.startsWith('4')?'red':'grey';
+    return `<tr>${urlCell(r.url)}<td>${pill(r.code,cls)}</td><td style="color:var(--text-muted)">${esc(r.status)}</td><td class="url-cell">${r.to?`<a href="${r.to}" target="_blank">${esc(r.to)}</a>`:''}</td></tr>`;
+  }).join('');
+}
+
+function renderIndexability() {
+  const idxTbody = document.getElementById('idx-body');
+  idxTbody.innerHTML = INDEXABLE.map(r => {
+    const titleOk = r.title && r.title.trim();
+    return `<tr>${urlCell(r.url)}<td>${pill('200','green')}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${titleOk?esc(r.title):`<span style="color:var(--red)">Missing</span>`}</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(r.h1)}</td><td>${r.words}</td><td>${r.inlinks}</td><td>${r.crawl_depth}</td></tr>`;
+  }).join('');
+
+  document.getElementById('nidx-count').textContent = NON_INDEXABLE.length + ' pages';
+  const nidxTbody = document.getElementById('nidx-body');
+  nidxTbody.innerHTML = NON_INDEXABLE.map(r => {
+    const cls = r.status==='200'?'blue':r.status==='301'?'yellow':'red';
+    return `<tr>${urlCell(r.url)}<td>${pill(r.status,cls)}</td><td>${pill(r.reason,'grey')}</td><td class="url-cell" style="font-size:11px">${r.canonical?`<a href="${r.canonical}" target="_blank">${esc(r.canonical)}</a>`:''}</td></tr>`;
+  }).join('');
+}
+
+function renderOnPage() {
+  const noTitle = INDEXABLE.filter(r => !r.title || !r.title.trim());
+  document.getElementById('no-title-body').innerHTML = noTitle.map(r =>
+    `<tr>${urlCell(r.url)}<td style="font-size:12px">${esc(r.h1)}</td><td>${r.inlinks}</td></tr>`).join('');
+
+  const longTitle = INDEXABLE.filter(r => r.title && r.title.length > 60);
+  document.getElementById('long-title-body').innerHTML = longTitle.map(r =>
+    `<tr>${urlCell(r.url)}<td style="font-size:12px">${esc(r.title)}</td><td>${pill(r.title.length+'c', r.title.length>70?'red':'orange')}</td></tr>`).join('');
+
+  const noMeta = INDEXABLE.filter(r => !r.meta || !r.meta.trim());
+  document.getElementById('no-meta-body').innerHTML = noMeta.map(r =>
+    `<tr>${urlCell(r.url)}<td style="font-size:12px">${esc(r.title)||'<span style="color:var(--red)">Missing</span>'}</td><td style="font-size:12px">${esc(r.h1)}</td></tr>`).join('');
+
+  // Multi H1 — signal page and resources page have known duplication issues
+  const multiH1 = [
+    {url:"https://www.laurel.ai/signal", h1_1:"Turn time into insight with Laurel Signal", h1_2:"We transform time into strategic revenue with real AI."},
+    {url:"https://www.laurel.ai/resources-post/unveiling-the-data-dashboard-a-glimpse-into-the-future", h1_1:"Redefining Value in Professional Services: A Data-Driven Approach", h1_2:"We transform time into strategic revenue with real AI."},
+  ];
+  document.getElementById('multi-h1-body').innerHTML = multiH1.map(r =>
+    `<tr>${urlCell(r.url)}<td style="font-size:12px">${esc(r.h1_1)}</td><td style="font-size:12px;color:var(--orange)">${esc(r.h1_2)}</td></tr>`).join('');
+}
+
+function renderContent() {
+  const dupPages = [
+    {url:"https://www.laurel.ai/resources",idx:"Indexable"},
+    {url:"https://www.laurel.ai/resources?06a5c3c3_page=1",idx:"Indexable"},
+    {url:"https://www.laurel.ai/resources?06a5c3c3_page=2",idx:"Indexable"},
+    {url:"https://www.laurel.ai/resources?06a5c3c3_page=3",idx:"Indexable"},
+    {url:"https://www.laurel.ai/resources?06a5c3c3_page=4",idx:"Indexable"},
+    {url:"https://www.laurel.ai/resources?category=Value",idx:"Non-Indexable (canonical)"},
+    {url:"https://www.laurel.ai/resources?category=Implementation",idx:"Non-Indexable (canonical)"},
+    {url:"https://www.laurel.ai/resources?category=Press",idx:"Non-Indexable (canonical)"},
+    {url:"https://www.laurel.ai/resources?category=Product",idx:"Non-Indexable (canonical)"},
+    {url:"https://www.laurel.ai/resources?category=Team",idx:"Non-Indexable (canonical)"},
+    {url:"https://www.laurel.ai/resources?category=Security",idx:"Non-Indexable (canonical)"},
+  ];
+  document.getElementById('dup-title-body').innerHTML = dupPages.map(r => {
+    const cls = r.idx === 'Indexable' ? 'orange' : 'grey';
+    return `<tr>${urlCell(r.url)}<td>${pill(r.idx, cls)}</td></tr>`;
+  }).join('');
+}
+
+function renderSchema() {
+  document.getElementById('schema-body').innerHTML = INDEXABLE.map(r =>
+    `<tr>${urlCell(r.url)}<td>${pill('0','red')}</td><td style="font-size:12px;color:var(--text-muted)">${schemaRec(r.url)}</td></tr>`
+  ).join('');
+}
+
+function renderBroken() {
+  document.getElementById('broken-body').innerHTML = NOT_FOUND.map(r =>
+    `<tr>${urlCell(r.url)}<td style="color:var(--text-muted);font-size:12px">${esc(r.note)}</td></tr>`).join('');
+  document.getElementById('auth-body').innerHTML = AUTH_401.map(r =>
+    `<tr>${urlCell(r.url)}<td style="color:var(--text-muted);font-size:12px">${esc(r.note)}</td></tr>`).join('');
+  document.getElementById('forbidden-body').innerHTML = FORBIDDEN_403.map(r =>
+    `<tr>${urlCell(r.url)}</tr>`).join('');
+  document.getElementById('dns-body').innerHTML = DNS_FAIL.map(r =>
+    `<tr>${urlCell(r.url)}<td style="color:var(--text-muted);font-size:12px">${esc(r.note)}</td></tr>`).join('');
+}
+
+function renderRedirects() {
+  document.getElementById('redir-body').innerHTML = REDIRECTS.map(r => {
+    const cls = r.code==='301'?'yellow':r.code==='302'?'blue':'orange';
+    return `<tr>${urlCell(r.url)}<td>${pill(r.code,cls)}</td><td class="url-cell"><a href="${r.to}" target="_blank">${esc(r.to)}</a></td></tr>`;
+  }).join('');
+}
+
+function renderClean() {
+  const clean = INDEXABLE.filter(r => r.title && r.title.trim() && r.meta && r.meta.trim() && r.h1 && r.h1.trim());
+  document.getElementById('clean-count').textContent = clean.length + ' pages';
+  document.getElementById('clean-body').innerHTML = clean.map(r =>
+    `<tr>${urlCell(r.url)}<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(r.title)}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(r.h1)}</td><td>${r.words}</td><td>${r.inlinks}</td></tr>`
+  ).join('');
+}
+</script>
+</body>
+</html>
