@@ -1,79 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<style id="body-lock">body > *:not(#auth-overlay){display:none!important}</style>
 <script>
 (function(){
-  const KEY = 'laurel_dash_auth';
-  const PWD = 'Laurel123!';
-  if (sessionStorage.getItem(KEY) === '1') return;
-  document.addEventListener('DOMContentLoaded', function() {
-    document.body.style.overflow = 'hidden';
-    const overlay = document.createElement('div');
-    overlay.id = 'auth-overlay';
-    overlay.innerHTML = `
-      <div id="auth-box">
-        <div id="auth-logo">laurel.ai</div>
-        <div id="auth-sub">Site Audit Dashboard</div>
-        <div id="auth-form">
-          <input id="auth-input" type="password" placeholder="Enter password" autocomplete="current-password" />
-          <button id="auth-btn">Unlock</button>
-        </div>
-        <div id="auth-error"></div>
-      </div>`;
-    document.body.appendChild(overlay);
-
-    const style = document.createElement('style');
-    style.textContent = `
-      #auth-overlay {
-        position:fixed;inset:0;background:#f8f8fc;z-index:9999;
-        display:flex;align-items:center;justify-content:center;
-      }
-      #auth-box {
-        background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;
-        padding:48px 40px;width:100%;max-width:360px;text-align:center;
-        box-shadow:0 4px 24px rgba(28,10,122,0.08);
-      }
-      #auth-logo {
-        font-family:'Inter',system-ui,sans-serif;font-weight:800;font-size:28px;
-        color:#1C0A7A;letter-spacing:-.5px;margin-bottom:6px;
-      }
-      #auth-sub {
-        font-family:'Inter',system-ui,sans-serif;font-size:12px;color:#6b7280;
-        text-transform:uppercase;letter-spacing:1px;margin-bottom:32px;
-      }
-      #auth-form { display:flex;gap:10px; }
-      #auth-input {
-        flex:1;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;
-        padding:10px 14px;color:#111111;font-family:'Inter',system-ui,sans-serif;font-size:14px;
-        outline:none;transition:border-color .2s;
-      }
-      #auth-input:focus { border-color:#1C0A7A; }
-      #auth-btn {
-        background:#1C0A7A;color:#fff;border:none;border-radius:8px;
-        padding:10px 18px;font-family:'Inter',system-ui,sans-serif;font-size:14px;font-weight:600;
-        cursor:pointer;transition:background .15s;white-space:nowrap;
-      }
-      #auth-btn:hover { background:#2d1a9a; }
-      #auth-error { color:#dc2626;font-size:12px;margin-top:14px;min-height:16px; }
-    \`;
-    document.head.appendChild(style);
-
-    function attempt() {
-      const val = document.getElementById('auth-input').value;
-      if (val === PWD) {
-        sessionStorage.setItem(KEY, '1');
-        overlay.style.opacity = '0';
-        overlay.style.transition = 'opacity .3s';
-        setTimeout(() => { overlay.remove(); document.body.style.overflow = ''; }, 300);
+  var KEY='laurel_dash_auth', PWD='Laurel123!';
+  function unlock(){
+    var l=document.getElementById('body-lock'); if(l) l.remove();
+  }
+  if(sessionStorage.getItem(KEY)==='1'){
+    document.addEventListener('DOMContentLoaded',unlock); return;
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    var o=document.createElement('div');
+    o.id='auth-overlay';
+    o.style.cssText='position:fixed;inset:0;background:#f8f8fc;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,sans-serif';
+    o.innerHTML='<div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:48px 40px;width:100%;max-width:360px;text-align:center;box-shadow:0 4px 24px rgba(28,10,122,.08)">'
+      +'<div style="font-weight:800;font-size:28px;color:#1C0A7A;letter-spacing:-.5px;margin-bottom:6px">laurel.ai</div>'
+      +'<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:32px">Site Audit Dashboard</div>'
+      +'<div style="display:flex;gap:10px">'
+      +'<input id="ai" type="password" placeholder="Enter password" style="flex:1;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;color:#111;font-size:14px;outline:none;font-family:Inter,system-ui,sans-serif" />'
+      +'<button id="ab" style="background:#1C0A7A;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,system-ui,sans-serif">Unlock</button>'
+      +'</div>'
+      +'<div id="ae" style="color:#dc2626;font-size:12px;margin-top:14px;min-height:16px"></div>'
+      +'</div>';
+    document.body.appendChild(o);
+    function attempt(){
+      if(document.getElementById('ai').value===PWD){
+        sessionStorage.setItem(KEY,'1'); unlock();
+        o.style.transition='opacity .3s'; o.style.opacity='0';
+        setTimeout(function(){o.remove();},300);
       } else {
-        document.getElementById('auth-error').textContent = 'Incorrect password.';
-        document.getElementById('auth-input').value = '';
-        document.getElementById('auth-input').focus();
+        document.getElementById('ae').textContent='Incorrect password.';
+        document.getElementById('ai').value='';
+        document.getElementById('ai').focus();
       }
     }
-    document.getElementById('auth-btn').addEventListener('click', attempt);
-    document.getElementById('auth-input').addEventListener('keydown', e => { if(e.key==='Enter') attempt(); });
-    setTimeout(() => document.getElementById('auth-input').focus(), 50);
+    document.getElementById('ab').onclick=attempt;
+    document.getElementById('ai').onkeydown=function(e){if(e.key==='Enter')attempt();};
+    setTimeout(function(){document.getElementById('ai').focus();},50);
   });
 })();
 </script>
