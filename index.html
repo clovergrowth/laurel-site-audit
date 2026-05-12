@@ -1024,6 +1024,12 @@ function renderContent() {
     const cls = r.idx === 'Indexable' ? 'orange' : 'grey';
     return `<tr>${urlCell(r.url)}<td>${pill(r.idx, cls)}</td></tr>`;
   }).join('');
+
+  const readabilityColor = {'Hard':'var(--red)','Very Hard':'var(--red)','Fairly Hard':'var(--orange)'};
+  document.getElementById('readability-body').innerHTML = READABILITY.map(r => {
+    const col = readabilityColor[r.readability] || 'var(--orange)';
+    return `<tr>${urlCell(r.url)}<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(r.title)}</td><td style="font-weight:600;color:${col}">${r.flesch}</td><td><span style="background:${col}22;color:${col};padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600">${r.readability}</span></td><td>${r.words}</td></tr>`;
+  }).join('');
 }
 
 function renderSchema() {
@@ -1116,13 +1122,6 @@ function renderRedirects() {
 }
 
 function renderClean() {
-  // Readability
-  const readabilityColor = {'Hard':'var(--red)','Very Hard':'var(--red)','Fairly Hard':'var(--orange)'};
-  document.getElementById('readability-body').innerHTML = READABILITY.map(r => {
-    const col = readabilityColor[r.readability] || 'var(--orange)';
-    return `<tr>${urlCell(r.url)}<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc(r.title)}</td><td style="font-weight:600;color:${col}">${r.flesch}</td><td><span style="background:${col}22;color:${col};padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600">${r.readability}</span></td><td>${r.words}</td></tr>`;
-  }).join('');
-
   const clean = INDEXABLE.filter(r => r.title && r.title.trim() && r.meta && r.meta.trim() && r.h1 && r.h1.trim());
   document.getElementById('clean-count').textContent = clean.length + ' pages';
   document.getElementById('clean-body').innerHTML = clean.map(r =>
