@@ -114,7 +114,7 @@
   .tab-btn:hover { background: var(--accent-light); color: var(--accent); }
   .tab-btn.active { background: var(--accent); color: #ffffff; }
   .tab-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
-  .tab-btn span { flex: 1; }
+  .tab-btn span:not(.nav-badge) { flex: 1; }
 
   /* ── CONTENT ── */
   .content-wrap { margin-left: var(--sidebar-w); min-height: 100vh; }
@@ -230,7 +230,7 @@
 
   /* ── NAV BADGES ── */
   .nav-badge {
-    margin-left: auto; padding: 1px 6px; border-radius: 8px;
+    padding: 1px 6px; border-radius: 8px;
     font-size: 10px; font-weight: 700; line-height: 1.6; flex-shrink: 0;
   }
   .nav-badge.red   { background: rgba(220,38,38,.12);  color: var(--red);    }
